@@ -1,0 +1,23 @@
+{
+  "skill_name": "harmonic-filters",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I need to calculate the values for an LC filter. The parameters are: Power 10000 kVAr, Voltage 30 kV, Frequency 50 Hz and Order 4.3 p.u.",
+      "expected_output": "Should return a clear report calculating exactly: Capacitance (C) = 33.45 μF and Inductance (L) = 16.38 mH. Must include harmonic verification.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Hey, I need to design a filter tuned to 4.7 p.u., can you help?",
+      "expected_output": "The agent MUST NOT invent parameters. It should refuse to execute the command and ask the user for power (kVAr), voltage (kV), and frequency (Hz).",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "I have a medium voltage network of 34.5kV. We operate at 60Hz. We have installed a bank of 5 MVAr (5000 kVAr) and now I want to transform it into a harmonic filter, I'm worried about the 5th, so I propose tuning it to 4.7",
+      "expected_output": "The model should be able to extract the 4 parameters (34.5 kV, 60 Hz, 5000 kVAr, 4.7 p.u.) and return exactly: Capacitance (C) = 10.64 μF and Inductance (L) = 29.94 mH.",
+      "files": []
+    }
+  ]
+}
