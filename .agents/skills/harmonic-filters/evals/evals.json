@@ -10,13 +10,37 @@
     {
       "id": 2,
       "prompt": "Hey, I need to design a filter tuned to 4.7 p.u., can you help?",
-      "expected_output": "The agent MUST NOT invent parameters. It should refuse to execute the command and ask the user for power (kVAr), voltage (kV), and frequency (Hz).",
+      "expected_output": "The agent MUST NOT invent parameters. It should ask the user for the filter type (LC, HP, or C-type), and then collect the missing parameters: power (kVAr), voltage (kV), and frequency (Hz). For HP and C-type, it must also ask for the quality factor.",
       "files": []
     },
     {
       "id": 3,
       "prompt": "I have a medium voltage network of 34.5kV. We operate at 60Hz. We have installed a bank of 5 MVAr (5000 kVAr) and now I want to transform it into a harmonic filter, I'm worried about the 5th, so I propose tuning it to 4.7",
       "expected_output": "The model should be able to extract the 4 parameters (34.5 kV, 60 Hz, 5000 kVAr, 4.7 p.u.) and return exactly: Capacitance (C) = 10.64 μF and Inductance (L) = 29.94 mH.",
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "Design an HP (high-pass) filter with: Power 5000 kVAr, Voltage 34.5 kV, Frequency 60 Hz, Tuning Order 4.7 p.u., Quality Factor 1.5.",
+      "expected_output": "Should return a clear HP filter report with exactly: Capacitance (C) = 10.64 μF, Inductance (L) = 29.94 mH, and Damping Resistance (Rp) = 79.58 Ω. Must include tuning verification and note that the quality factor is evaluated at the tuned frequency.",
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "I want to design a high-pass filter for a 33 kV, 50 Hz system with 8 MVAr at harmonic 3.8.",
+      "expected_output": "The agent must recognize this is an HP filter and ask for the missing quality factor (qfF @ fr), informing the user that it is frequency-dependent and must correspond to the tuned frequency (fr = hr × fn).",
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "Calculate a C-type filter: 8000 kVAr, 33 kV, 50 Hz, harmonic order 3.8, quality factor 2.5.",
+      "expected_output": "Should return a clear C-type filter report with exactly: Main Capacitor (C2) = 23.38 μF, Auxiliary Capacitor (C1) = 314.28 μF, Inductance (L) = 32.24 mH, and Damping Resistance (Rp) = 96.22 Ω. L-C1 resonance check must be ≈ 1.0.",
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "I need a third-order filter for my 30 kV installation. We have 12 MVAr available at 50 Hz. I want to address the 5th harmonic, so tune it to 4.7. The quality factor at the tuned frequency is 3.0.",
+      "expected_output": "The agent should identify this as a C-type (third-order) filter and extract all 5 parameters (30 kV, 50 Hz, 12000 kVAr, 4.7 p.u., qfF=3.0). Should return exactly: C2 = 42.44 μF, C1 = 895.09 μF, L = 11.32 mH, Rp = 50.14 Ω. L-C1 resonance check ≈ 1.0.",
       "files": []
     }
   ]
