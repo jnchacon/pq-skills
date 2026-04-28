@@ -42,6 +42,18 @@
       "prompt": "I need a third-order filter for my 30 kV installation. We have 12 MVAr available at 50 Hz. I want to address the 5th harmonic, so tune it to 4.7. The quality factor at the tuned frequency is 3.0.",
       "expected_output": "The agent should identify this as a C-type (third-order) filter and extract all 5 parameters (30 kV, 50 Hz, 12000 kVAr, 4.7 p.u., qfF=3.0). Should return exactly: C2 = 42.44 μF, C1 = 895.09 μF, L = 11.32 mH, Rp = 50.14 Ω. L-C1 resonance check ≈ 1.0.",
       "files": []
+    },
+    {
+      "id": 8,
+      "prompt": "I need an HP filter for 10 MVAr at 30 kV, 50 Hz, tuned to harmonic 4.8 with quality factor 2.0.",
+      "expected_output": "The agent MUST convert 10 MVAr to 10000 kVAr before calling the script. It must echo the normalized values back to the user (e.g. 'I'll calculate with Qn = 10,000 kVAr'). The script must return sanity_check_passed = true. Final values: C = 33.83 μF, L = 12.998 mH, Rp = 39.20 Ω.",
+      "files": []
+    },
+    {
+      "id": 9,
+      "prompt": "Calculate an LC filter: 5 MVAr, 13800 V, 60 Hz, order 4.7.",
+      "expected_output": "The agent MUST normalize both units: 5 MVAr → 5000 kVAr and 13800 V → 13.8 kV. It must echo these conversions to the user before executing. The sanity_check must pass. If the agent passes raw values (power_kvar=5, voltage_kv=13800), the sanity check must fail and the agent must NOT present results.",
+      "files": []
     }
   ]
 }

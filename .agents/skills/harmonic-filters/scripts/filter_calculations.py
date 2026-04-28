@@ -3,6 +3,68 @@ import argparse
 import json
 
 
+def sanity_check(power_kvar: float, voltage_kv: float, frequency_hz: float, capacitance_f: float) -> dict:
+    """
+    Validates that the inputs and calculated capacitance are physically
+    consistent for a power system harmonic filter. Catches unit-conversion
+    errors (e.g. MVAr passed as kVAr) that produce mathematically valid
+    but absurd component values.
+
+    Two independent checks:
+    1. Rated current: I = Q / (sqrt(3) * U). Must be between 1 A and 5000 A
+       for typical medium/high voltage filter banks.
+    2. Capacitance magnitude: At voltages > 1 kV, filter capacitors below
+       0.1 μF are extremely unusual and likely indicate a unit error.
+    """
+    power_var = power_kvar * 1000.0
+    voltage_v = voltage_kv * 1000.0
+    omega_n = 2 * math.pi * frequency_hz
+
+    # Check 1: Rated current
+    i_rated = power_var / (math.sqrt(3) * voltage_v)
+
+    # Check 2: Capacitance in μF
+    capacitance_uf = capacitance_f * 1e6
+
+    # Check 3: Capacitive reactance (informational)
+    xc = 1.0 / (omega_n * capacitance_f)
+
+    warnings = []
+
+    if i_rated < 1.0:
+        warnings.append(
+            f"Rated current is only {i_rated:.2f} A — unusually low for a "
+            f"harmonic filter at {voltage_kv} kV. "
+            f"Verify that power is in kVAr (not MVAr). "
+            f"Example: 10 MVAr = 10000 kVAr."
+        )
+    elif i_rated > 5000.0:
+        warnings.append(
+            f"Rated current is {i_rated:.1f} A — unusually high. "
+            f"Verify that power is in kVAr (not VAr)."
+        )
+
+    if voltage_kv > 1.0 and capacitance_uf < 0.1:
+        warnings.append(
+            f"Capacitance is {capacitance_uf:.4f} μF — extremely small for a "
+            f"{voltage_kv} kV filter. This likely indicates a unit error in power."
+        )
+
+    passed = len(warnings) == 0
+
+    result = {
+        "i_rated_a": round(i_rated, 4),
+        "capacitance_uf": round(capacitance_uf, 4),
+        "xc_ohm": round(xc, 4),
+        "sanity_check_passed": passed,
+    }
+
+    if not passed:
+        result["warnings"] = warnings
+
+    return result
+
+
 def calculate_lc_filter(power_kvar: float, voltage_kv: float, frequency_hz: float, harmonic_order: float) -> dict:
     """
     Calculates the L and C parameters for a first-order LC harmonic filter.
@@ -41,7 +103,7 @@ def calculate_lc_filter(power_kvar: float, voltage_kv: float, frequency_hz: floa
     omega_r_calc = 1 / math.sqrt(inductance * capacitance)
     hr_calc = omega_r_calc / omega_n
 
-    return {
+    result = {
         "filter_type": "LC (First Order)",
         "capacitance_uf": capacitance * 1e6,
         "inductance_mh": inductance * 1e3,
@@ -49,6 +111,12 @@ def calculate_lc_filter(power_kvar: float, voltage_kv: float, frequency_hz: floa
         "tuned_harmonic_check": hr_calc,
         "status": "success"
     }
+
+    result["sanity_check"] = sanity_check(power_kvar, voltage_kv, frequency_hz, capacitance)
+    if not result["sanity_check"]["sanity_check_passed"]:
+        result["status"] = "warning"
+
+    return result
 
 
 def calculate_hp_filter(power_kvar: float, voltage_kv: float, frequency_hz: float, harmonic_order: float, quality_factor: float) -> dict:
@@ -102,7 +170,7 @@ def calculate_hp_filter(power_kvar: float, voltage_kv: float, frequency_hz: floa
     omega_r_calc = 1 / math.sqrt(inductance * capacitance)
     hr_calc = omega_r_calc / omega_n
 
-    return {
+    result = {
         "filter_type": "HP (Second Order)",
         "capacitance_uf": capacitance * 1e6,
         "inductance_mh": inductance * 1e3,
@@ -112,6 +180,12 @@ def calculate_hp_filter(power_kvar: float, voltage_kv: float, frequency_hz: floa
         "tuned_harmonic_check": hr_calc,
         "status": "success"
     }
+
+    result["sanity_check"] = sanity_check(power_kvar, voltage_kv, frequency_hz, capacitance)
+    if not result["sanity_check"]["sanity_check_passed"]:
+        result["status"] = "warning"
+
+    return result
 
 
 def calculate_ctype_filter(power_kvar: float, voltage_kv: float, frequency_hz: float, harmonic_order: float, quality_factor: float) -> dict:
@@ -161,7 +235,7 @@ def calculate_ctype_filter(power_kvar: float, voltage_kv: float, frequency_hz: f
     omega_r_c1 = 1 / math.sqrt(inductance * c1)
     hr_c1_check = omega_r_c1 / omega_n  # Should be ~1.0 (fundamental)
 
-    return {
+    result = {
         "filter_type": "C-type (Third Order)",
         "capacitance_c1_uf": c1 * 1e6,
         "capacitance_c2_uf": c2 * 1e6,
@@ -172,6 +246,12 @@ def calculate_ctype_filter(power_kvar: float, voltage_kv: float, frequency_hz: f
         "lc1_resonance_check": hr_c1_check,
         "status": "success"
     }
+
+    result["sanity_check"] = sanity_check(power_kvar, voltage_kv, frequency_hz, c2)
+    if not result["sanity_check"]["sanity_check_passed"]:
+        result["status"] = "warning"
+
+    return result
 
 
 if __name__ == "__main__":

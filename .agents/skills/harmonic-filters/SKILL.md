@@ -30,6 +30,17 @@ Verify that you have all essential parameters from the user's request. If any ar
 - `frequency_hz`: Nominal system frequency (fn) in Hertz (Hz)
 - `harmonic_order`: Desired tuning order (hr) in per unit (p.u.)
 
+**STRICT RULE — Unit Normalization:**
+The script expects `power_kvar` in **kVAr** and `voltage_kv` in **kV**. Users often express power in MVAr or voltage in V. You MUST normalize before executing:
+
+| User says | Conversion | Example |
+| --- | --- | --- |
+| X **MVAr** | Multiply by 1,000 → kVAr | 10 MVAr → `--power_kvar 10000` |
+| X **VAr** | Divide by 1,000 → kVAr | 5000000 VAr → `--power_kvar 5000` |
+| X **V** | Divide by 1,000 → kV | 30000 V → `--voltage_kv 30` |
+
+After converting, **echo the normalized values back to the user** before executing the script. For example: _"I'll calculate with Qn = 10,000 kVAr and Un = 30 kV."_ This gives the user a chance to catch conversion errors.
+
 **Additional parameter required for HP and C-type filters ONLY:**
 
 - `quality_factor`: Filter quality factor at the tuned frequency (qf @ fr), dimensionless.
@@ -78,7 +89,22 @@ python .agents/skills/harmonic-filters/scripts/filter_calculations.py --filter_t
 python .agents/skills/harmonic-filters/scripts/filter_calculations.py --filter_type ctype --power_kvar [value] --voltage_kv [value] --frequency_hz [value] --harmonic_order [value] --quality_factor [value]
 ```
 
-### Step 5: Present Results
+### Step 5: Sanity Check (Post-Calculation)
+
+Before presenting the results, check the `sanity_check` field in the script's JSON output. The script automatically validates two physical quantities that do NOT self-cancel with unit errors:
+
+1. **Rated current** ($I = Q_n / (\sqrt{3} \cdot U_n)$): Must be between 1 A and 5000 A for typical MV/HV filter banks. A current of 0.19 A at 30 kV is a red flag.
+2. **Capacitance magnitude**: At voltages > 1 kV, filter capacitors below 0.1 μF are extremely unusual.
+
+**If `sanity_check_passed` is `false`:**
+1. DO NOT present the results to the user.
+2. Read the `warnings` array in the JSON for specific guidance.
+3. The most common cause is passing MVAr directly as kVAr (e.g., `--power_kvar 10` instead of `--power_kvar 10000` for a 10 MVAr filter).
+4. Review your unit conversions from Step 2 and re-run the script.
+
+> **Future note:** Inverse calculations (given C, L, R → derive Qn, hr, qf) can provide an even stronger cross-check. This is planned but not yet implemented.
+
+### Step 6: Present Results
 
 The script returns a JSON response containing the exact analytical values. Do not calculate or alter the values yourself.
 
